@@ -83,14 +83,16 @@ def makePrediction(map: AocMap, guard: Pos) =
 
 def part1(input: AocMap, start: Pos) = {
   makePrediction(input, start).map(_._1.rows.map(_.filter(_ == 'X').length).sum)
+  for {
+    prediction <- makePrediction(input, start)
+  } yield (prediction._1.rows.map(_.filter(_ == 'X').length).sum, prediction._1)
 }
 
 def part2(input: AocMap, start: Pos) = {
-  ZIO.foreach(input.positions.toList) { pos => 
+  ZIO.foreachPar(input.positions.filter(input(_) == 'X').toList) { pos => 
     val map = input.updated(pos, 'O')
     makePrediction(map, start).map(_._2)
-  }.map(_.count(identity))
-}
+  }.map(_.count(identity))}
 
 object App extends ZIOAppDefault {
   def run = program
@@ -99,8 +101,8 @@ object App extends ZIOAppDefault {
     input         <- Utils.loadResource("day06.in")
     (map, carrot) <- parse(input)
     ans1          <- part1(map, carrot)
-    _             <- printLine(ans1)
-    ans2          <- part2(map, carrot)
+    _             <- printLine(ans1._1)
+    ans2          <- part2(ans1._2, carrot)
     _             <- printLine(ans2)
   } yield ()
 }
