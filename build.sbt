@@ -14,5 +14,6 @@ lazy val root = project
       "org.typelevel" %% "cats-parse" % "1.0.0",
       "dev.zio" %% "zio" % "2.1.13",
       "dev.zio" %% "zio-streams" % "2.1.13",
+      "dev.zio" %% "zio-prelude" % "1.0.0-RC35"
     )
   )
