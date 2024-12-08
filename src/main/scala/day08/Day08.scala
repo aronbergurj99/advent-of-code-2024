@@ -13,7 +13,7 @@ def parse(input: String) =
     input.linesIterator.toVector.map(_.toVector)
   }
 
-def makeAntinodes(grid: Grid) =
+def findAntennas(grid: Grid) =
   ZIO.succeed {
     grid.zipWithIndex.foldLeft(Map.empty[Char, List[Pos]]) { (acc, indexedRow) =>
       indexedRow.head.zipWithIndex.filter(_.head != '.').foldLeft(acc) { (innerAcc, indexedCol) => 
@@ -23,13 +23,9 @@ def makeAntinodes(grid: Grid) =
           antenna, 
           (indexedRow.last, indexedCol.last) :: innerAcc.getOrElse(antenna, List.empty))
       }
-    }.values
-
-      .flatMap(
-      positions => positions
-        .combinations(2)
-        .map(v => (v.head, v.last))).flatMap(
-          comb => List(findAntinodes(comb.head, comb.last), findAntinodes(comb.last, comb.head))).toList.distinct
+    }.values.flatMap { positions =>
+        positions.flatMap(pos => positions.filter(_ != pos).map((pos, _)))
+    }
   }
 
 def findAntinodes(p1: Pos, p2: Pos) =
@@ -39,21 +35,22 @@ def findAntinodes(p1: Pos, p2: Pos) =
   (p1._1 - dy * 2, p1._2 + dx * 2)
 
 
-def part1(grid: Grid, antinodes: List[Pos]) =
-  ZIO.foreach(antinodes) { antinode => 
-    ZIO.attempt {
-      grid(antinode.head)(antinode.last)
-      true
-    }.orElseSucceed(false)
-  }.map(_.count(identity))
-
+def part1(grid: Grid) =
+  for {
+    antennas  <- findAntennas(grid)
+    antiNodes <- ZIO.foreach(antennas.map(findAntinodes).toList.distinct) { antiNode =>
+      ZIO.attempt {
+        grid(antiNode.head)(antiNode.last)
+        true
+      }.orElseSucceed(false)
+    }.map(_.count(identity))
+  } yield (antiNodes)
 
 object App extends ZIOAppDefault {
   def run = for {
     input  <- loadResource("day08.in")
     grid <- parse(input)
-    antinodes   <- makeAntinodes(grid)
-    ans1   <- part1(grid, antinodes)
+    ans1   <- part1(grid)
     _      <- printLine(ans1)
 
   } yield ()
